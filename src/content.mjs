@@ -3,6 +3,7 @@
 
 export const PERSON = {
   name: "Akshaj Srirambhatla",
+  site: "https://akshaj01.github.io",
   first: "Akshaj",
   last: "Srirambhatla",
   role: "AI Engineer",

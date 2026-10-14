@@ -249,7 +249,8 @@ function haloImage(plan, color, sigma, parent) {
   g.shadowOffsetX = off;
   g.fillStyle = color;
   g.beginPath();
-  g.roundRect(pad * s - off, pad * s, plan.w * s, plan.d * s, plan.r * s);
+  if (g.roundRect) g.roundRect(pad * s - off, pad * s, plan.w * s, plan.d * s, plan.r * s);
+  else g.rect(pad * s - off, pad * s, plan.w * s, plan.d * s); // Safari before 16
   g.fill();
   const group = el("g", { transform: matrixOf([0, 0, 0], [1, 0, 0], [0, 1, 0]) }, parent);
   el("image", { href: canvas.toDataURL("image/png"), x: plan.x - pad, y: plan.y - pad, width: w, height: h, preserveAspectRatio: "none" }, group);

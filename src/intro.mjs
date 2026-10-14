@@ -1,7 +1,8 @@
 // The opening animation: the book settles in, the cover opens, one leaf turns onto
 // the contents, the rest riffle past while the camera drives into the last page,
 // and that page, being the site's own paper, hands over to the site.
-import { createBook, DEFS } from "./book/scene.mjs";
+// The book's code (about 30 KB) is imported only when the intro actually plays, so a
+// returning visitor downloads none of it.
 
 const html = document.documentElement;
 const root = document.getElementById("intro");
@@ -89,7 +90,8 @@ function cameraAt(t, boxes, aspect) {
   // On a tall phone screen the spread is too wide to read whole, so the camera
   // frames the right-hand page and lets the left one run off the edge.
   const tall = aspect < 0.85;
-  const closed = viewOf(boxes.closed, tall ? 0.78 : 0.5, aspect);
+  // ?fill=0.8 frames the shut book larger, for the share image.
+  const closed = viewOf(boxes.closed, Number(params.get("fill")) || (tall ? 0.78 : 0.5), aspect);
   const open = tall ? viewOf(boxes.right, 0.96, aspect) : viewOf(boxes.open, 0.84, aspect);
   open.cy -= (open.w / aspect) * 0.05; // leave headroom for a leaf standing upright
   const page = insidePage(boxes.page, aspect);
@@ -113,6 +115,8 @@ let playing = false;
 function shouldPlay() {
   if (!root) return false;
   if (params.has("intro") || params.has("t")) return true;
+  // The page was already handed back because the intro took too long to load.
+  if (html.hasAttribute("data-intro-late")) return false;
   try {
     return sessionStorage.getItem("intro-seen") !== "1";
   } catch {
@@ -126,9 +130,26 @@ async function fontsReady() {
   await Promise.race([Promise.all(loads), new Promise((r) => setTimeout(r, 600))]);
 }
 
+// If anything goes wrong (an old browser, a failed download), get out of the way.
+function bail(error) {
+  console.warn("intro skipped:", error);
+  html.classList.remove("intro-pending", "intro-playing");
+  html.classList.add("intro-done");
+  if (root) root.hidden = true;
+  playing = false;
+}
+
 async function play() {
   if (playing) return;
   playing = true;
+  try {
+    await run();
+  } catch (error) {
+    bail(error);
+  }
+}
+
+async function run() {
   window.scrollTo(0, 0);
   html.classList.remove("intro-done");
   html.classList.add("intro-playing");
@@ -138,6 +159,7 @@ async function play() {
 
   const svg = root.querySelector("svg");
   svg.classList.remove("is-in");
+  const { createBook, DEFS } = await import("./book/scene.mjs");
   svg.innerHTML = `<defs>${DEFS}</defs><g class="bk-dyn"></g>`;
   const css = getComputedStyle(root);
   await fontsReady();
@@ -153,7 +175,8 @@ async function play() {
   };
 
   if (params.has("t")) {
-    // A frozen frame for screenshots: ?t=2200
+    // A frozen frame for screenshots (and the share image): ?t=2200
+    root.querySelector(".intro-skip").hidden = true;
     draw(Number(params.get("t")));
     svg.classList.add("is-in");
     return;

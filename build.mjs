@@ -1,6 +1,6 @@
-// Builds the static site into dist/: index.html from src/content.mjs, plus the
-// stylesheet and the intro's modules, copied as they are. No dependencies.
-import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+// Builds the static site into dist/: index.html from src/content.mjs with its CSS inlined,
+// plus the intro's modules, copied as they are. No dependencies.
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PERSON, EXPERIENCE, PROJECTS, SKILLS, EDUCATION, SECTIONS } from "./src/content.mjs";
@@ -72,9 +72,20 @@ const contact = `<section class="section contact" id="contact" aria-labelledby="
   </ul>
 </section>`;
 
-// Runs before first paint: if the intro is going to play, cover the page now so the
-// site doesn't flash first. If the module never loads, give the page back after 4 s.
-const pending = `(function(){try{var d=document.documentElement,q=location.search;if(q.indexOf("intro")<0&&q.indexOf("t=")<0&&sessionStorage.getItem("intro-seen")==="1")return;d.classList.add("intro-pending");if(document.fonts){document.fonts.load('500 12px "Outfit"');document.fonts.load('400 12px "Source Serif 4"')}setTimeout(function(){d.classList.remove("intro-pending")},4000)}catch(e){}})();`;
+// The book's modules. Only a visit that will play the intro fetches them.
+const BOOK_MODULES = ["book/scene.mjs", "book/kit/iso-kit.mjs", "book/dims.mjs", "book/pages.mjs", "content.mjs"];
+
+// Runs before first paint. If the intro is going to play: cover the page so the site
+// doesn't flash first, start fetching the book's modules and fonts in parallel, and if
+// they haven't arrived in 4 s, give the page back and mark the intro too late to start.
+const pending = `(function(){try{var d=document.documentElement,q=location.search;if(q.indexOf("intro")<0&&q.indexOf("t=")<0&&sessionStorage.getItem("intro-seen")==="1")return;d.classList.add("intro-pending");${JSON.stringify(BOOK_MODULES)}.forEach(function(m){var l=document.createElement("link");l.rel="modulepreload";l.href="assets/"+m;document.head.appendChild(l)});if(document.fonts){document.fonts.load('500 12px "Outfit"');document.fonts.load('400 12px "Source Serif 4"')}setTimeout(function(){if(d.classList.contains("intro-pending")){d.classList.remove("intro-pending");d.setAttribute("data-intro-late","")}},4000)}catch(e){}})();`;
+
+// The stylesheets are small, so they ship inside the page: no extra round trip before it can draw.
+const css = ["src/book/kit/iso.css", "src/site.css"].map((f) => readFileSync(join(HERE, f), "utf8")).join("\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\n\s*\n/g, "\n");
+
+// A small cloth-bound book with its blue ribbon, for the browser tab.
+const favicon = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M19.5 27v4.5l1.75-1.4 1.75 1.4V27" fill="#46648c"/><rect x="6.5" y="3.5" width="19" height="24" fill="#cbc4b4" stroke="#3b3935"/><rect x="6.5" y="3.5" width="4" height="24" fill="#958d7d" stroke="#3b3935"/><path d="M14 10h8M14 13h6" stroke="#8d897f"/></svg>`)}`;
+const hasShareImage = existsSync(join(HERE, "src/og.jpg"));
 
 const description = `${PERSON.name}, ${PERSON.role} in ${PERSON.location}. ${PERSON.tagline}`;
 
@@ -85,15 +96,24 @@ const page = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(PERSON.name)} · ${esc(PERSON.role)}</title>
 <meta name="description" content="${esc(description)}">
-<meta property="og:title" content="${esc(PERSON.name)}">
+<link rel="canonical" href="${esc(PERSON.site)}/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${esc(PERSON.site)}/">
+<meta property="og:title" content="${esc(PERSON.name)} · ${esc(PERSON.role)}">
 <meta property="og:description" content="${esc(description)}">
+${hasShareImage ? `<meta property="og:image" content="${esc(PERSON.site)}/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A cloth-bound book with ${esc(PERSON.name)} stamped on the cover">
+<meta name="twitter:card" content="summary_large_image">` : ""}
 <meta name="theme-color" content="#f6f4ef">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="${favicon}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&display=swap">
-<link rel="stylesheet" href="assets/book/kit/iso.css">
-<link rel="stylesheet" href="assets/site.css">
-${["intro.mjs", "book/scene.mjs", "book/kit/iso-kit.mjs", "book/dims.mjs", "book/pages.mjs", "content.mjs"].map((m) => `<link rel="modulepreload" href="assets/${m}">`).join("\n")}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap">
+<style>${css}</style>
+<link rel="modulepreload" href="assets/intro.mjs">
 <script>${pending}</script>
 </head>
 <body>
@@ -133,7 +153,8 @@ ${contact}
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
-cpSync(join(HERE, "src"), join(OUT, "assets"), { recursive: true });
+// The stylesheets are inlined above, so only the modules, the share image and the licence ship.
+cpSync(join(HERE, "src"), join(OUT, "assets"), { recursive: true, filter: (from) => !from.endsWith(".css") });
 writeFileSync(join(OUT, "index.html"), page);
 writeFileSync(join(OUT, ".nojekyll"), "");
 console.log("built dist/index.html");

@@ -19,8 +19,9 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
 | File | What it holds |
 |---|---|
 | `src/content.mjs` | Every word on the site: person, experience, projects, skills, education, and `SECTIONS` (ids, numbers and the book's page numbers). Edit content here only. |
-| `build.mjs` | Renders `dist/index.html` from `content.mjs` and copies `src/` to `dist/assets/`. |
-| `src/site.css` | All styles and every colour token. |
+| `build.mjs` | Renders `dist/index.html` from `content.mjs`, inlines both stylesheets into it, and copies the modules and `og.jpg` to `dist/assets/`. |
+| `src/site.css` | All styles and every colour token (inlined into the page at build time). |
+| `src/og.jpg` | The 1200×630 share image: the shut book. Regenerate it after changing the cover (see below). |
 | `src/intro.mjs` | The timeline (`TIME`, `RIFFLE`), the camera, skip and replay. |
 | `src/book/scene.mjs` | The book's geometry and drawing: boards, spine, curling leaves, ribbon. |
 | `src/book/pages.mjs` | What is printed on each face: cover stamping, marbled endpapers, bookplate, title page, contents, text pages. |
@@ -41,6 +42,23 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
   dates and numbers.
 - **The contents nav mirrors the book.** Section numbers, titles and page numbers come from
   `SECTIONS`, which also draws the contents page in the intro.
+
+## Loading
+
+- The page is plain HTML with its CSS inlined, so it draws after one request plus the fonts.
+- Fonts: Outfit 400/500 and Source Serif 4 400 roman and italic, nothing else. Adding a weight
+  or the optical-size axis roughly triples the font download; check `site.css` uses it first.
+- `intro.mjs` is tiny and always loads. The book's modules (`book/*`, `content.mjs`) are imported
+  only when the intro will play, and the inline head script preloads them in that case only,
+  so a returning visitor downloads none of them.
+- If the book's modules haven't arrived after 4 s, the head script hands the page back and flags
+  `data-intro-late`, so the intro never starts on top of a page someone is already reading.
+- If anything in the intro throws (an old browser, a failed download), `bail()` removes it and
+  shows the site.
+- Regenerate the share image with the server running:
+  `node ~/.claude/skills/anatomy/scripts/capture.mjs "http://localhost:4173/?t=420&fill=0.84" --out shots/og-raw.png --select ".intro" --width 1260 --height 690 --scale 1`,
+  then `sips -c 630 1200 --cropOffset 30 30 shots/og-raw.png --out src/og.png` and
+  `sips -s format jpeg -s formatOptions 88 src/og.png --out src/og.jpg` (delete the png).
 
 ## Working on the intro
 
