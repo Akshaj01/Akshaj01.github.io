@@ -18,6 +18,9 @@ const TIME = {
   leave: 4880,
 };
 const RIFFLE = { first: 1, gap: 250, gapDecay: 0.86, dur: 620, durDecay: 0.9, least: 240 };
+// With reduced motion asked for, nothing moves: the shut book fades in, rests for this
+// long, and dissolves into the site (opacity only, in site.css).
+const GENTLE_HOLD = 1900;
 
 const ease = (t) => t * t * (3 - 2 * t);
 const clamp01 = (t) => Math.min(1, Math.max(0, t));
@@ -108,7 +111,7 @@ function cameraAt(t, boxes, aspect) {
 let playing = false;
 
 function shouldPlay() {
-  if (!root || still.matches) return false;
+  if (!root) return false;
   if (params.has("intro") || params.has("t")) return true;
   try {
     return sessionStorage.getItem("intro-seen") !== "1";
@@ -183,7 +186,7 @@ async function play() {
       stop();
       root.hidden = true;
       playing = false;
-    }, fast ? 320 : 480);
+    }, fast ? 320 : still.matches ? 720 : 480);
   };
   const onKey = (event) => {
     if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
@@ -193,6 +196,12 @@ async function play() {
   };
   addEventListener("keydown", onKey);
   root.querySelector(".intro-skip").onclick = () => leave(true);
+
+  if (still.matches) {
+    performance.mark("intro-first-frame");
+    setTimeout(() => leave(false), GENTLE_HOLD);
+    return;
+  }
 
   // If this screen keeps missing its frames (a 120 Hz display on a busy machine), drop
   // to drawing every other refresh: an even 60 fps reads smoother than 120 with gaps.
@@ -238,7 +247,4 @@ else {
   if (root) root.hidden = true;
 }
 
-document.querySelector("[data-replay]")?.addEventListener("click", () => {
-  if (still.matches) return;
-  play();
-});
+document.querySelector("[data-replay]")?.addEventListener("click", () => play());

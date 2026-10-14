@@ -178,7 +178,15 @@ html.intro-pending .site, html.intro-playing .site { opacity: 0; transform: tran
 .bk-headband-bead { fill: none; stroke: #6a6458; stroke-width: 2; stroke-dasharray: 0.8 0.8; }
 .bk-crown { fill: none; stroke: var(--cloth-light); stroke-width: 0.6px; vector-effect: non-scaling-stroke; }
 
+/* Reduced motion: the gentle version. Only opacity changes; nothing slides, zooms or turns. */
+@keyframes book-fade {
+  from { opacity: 0.001; }
+  to { opacity: 1; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .site { transition: none; }
-  .intro { display: none !important; }
+  .site { transition: opacity 700ms ease; }
+  html.intro-pending .site, html.intro-playing .site { transform: none; }
+  .intro .iso-svg.book.is-in { animation: book-fade 700ms ease forwards; }
+  .intro.is-leaving { transition-duration: 700ms; }
+  .intro.is-leaving.is-fast { transition-duration: 300ms; }
 }

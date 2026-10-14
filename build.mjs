@@ -74,7 +74,7 @@ const contact = `<section class="section contact" id="contact" aria-labelledby="
 
 // Runs before first paint: if the intro is going to play, cover the page now so the
 // site doesn't flash first. If the module never loads, give the page back after 4 s.
-const pending = `(function(){try{var d=document.documentElement,q=location.search;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;if(q.indexOf("intro")<0&&q.indexOf("t=")<0&&sessionStorage.getItem("intro-seen")==="1")return;d.classList.add("intro-pending");if(document.fonts){document.fonts.load('500 12px "Outfit"');document.fonts.load('400 12px "Source Serif 4"')}setTimeout(function(){d.classList.remove("intro-pending")},4000)}catch(e){}})();`;
+const pending = `(function(){try{var d=document.documentElement,q=location.search;if(q.indexOf("intro")<0&&q.indexOf("t=")<0&&sessionStorage.getItem("intro-seen")==="1")return;d.classList.add("intro-pending");if(document.fonts){document.fonts.load('500 12px "Outfit"');document.fonts.load('400 12px "Source Serif 4"')}setTimeout(function(){d.classList.remove("intro-pending")},4000)}catch(e){}})();`;
 
 const description = `${PERSON.name}, ${PERSON.role} in ${PERSON.location}. ${PERSON.tagline}`;
 

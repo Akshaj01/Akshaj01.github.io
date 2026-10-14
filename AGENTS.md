@@ -10,7 +10,9 @@ dependencies and no framework. `node build.mjs` writes `dist/`, which deploys as
 On first visit an opening animation plays: a cloth-bound book opens, turns to its
 contents page, riffles, and the camera drives into the last (blank) page, which is the
 site's own paper colour, so it hands over to the page underneath. It plays once per
-browser session, never under `prefers-reduced-motion`, and can be skipped or replayed.
+browser session and can be skipped or replayed. Under `prefers-reduced-motion` it plays a
+gentle version instead: the shut book fades in, rests, and dissolves into the site, with
+only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in `site.css`).
 
 ## Files
 
