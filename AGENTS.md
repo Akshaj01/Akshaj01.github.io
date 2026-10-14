@@ -46,8 +46,11 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
 ## Loading
 
 - The page is plain HTML with its CSS inlined, so it draws after one request plus the fonts.
-- Fonts: Outfit 400/500 and Source Serif 4 400 roman and italic, nothing else. Adding a weight
-  or the optical-size axis roughly triples the font download; check `site.css` uses it first.
+- Fonts are self-hosted in `src/fonts/` (Latin subset, from Google Fonts, SIL OFL licences beside
+  them): Outfit 400–500 (one variable file) and Source Serif 4 400 roman and italic, about 72 KB.
+  The two used above the fold are preloaded. To add a weight or a character outside Latin,
+  download the matching woff2 from Google Fonts and add an `@font-face` at the top of `site.css`;
+  the optical-size axis roughly triples Source Serif's size, so leave it out.
 - `intro.mjs` is tiny and always loads. The book's modules (`book/*`, `content.mjs`) are imported
   only when the intro will play, and the inline head script preloads them in that case only,
   so a returning visitor downloads none of them.

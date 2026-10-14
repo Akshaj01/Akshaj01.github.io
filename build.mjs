@@ -109,9 +109,8 @@ ${hasShareImage ? `<meta property="og:image" content="${esc(PERSON.site)}/assets
 <meta name="theme-color" content="#f6f4ef">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="${favicon}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap">
+<link rel="preload" href="assets/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>${css}</style>
 <link rel="modulepreload" href="assets/intro.mjs">
 <script>${pending}</script>
