@@ -30,7 +30,11 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
 
 ## Design system
 
-- **Light paper theme.** Page background is `--paper` (#f6f4ef). The intro's desk is `--desk`.
+- **Light paper theme.** Page background is `--paper` (#f6f4ef).
+- **The book rests on a pale oak tabletop** (`src/book/table.mjs`, colours `--wood*` in `site.css`):
+  one seamless slab in the book's own floor plane, painted once into a canvas before the clock
+  starts and only moved and scaled by the camera (a CSS transform, so it costs nothing per frame).
+  Never redraw it per frame.
   The last page of the book is drawn exactly in `--paper`; never change one without the other.
 - **Radius 0.** No rounded corners anywhere.
 - **No shadows or glows.** Separation comes from 1px rules (`--rule`, `--rule-strong`).
@@ -77,8 +81,17 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
     re-lay out every letter on every frame of the camera zoom.
   - Hidden parts use `visibility`, not `display`, so their text is laid out before the clock starts.
   - No CSS or SVG filters on anything that moves with the camera. The halo is a pre-blurred image.
+  - No SVG `<pattern>` with a small tile (the cover's cloth weave is a pre-drawn image):
+    Safari redraws every tile on every frame of the camera move.
+  - Never read layout (`clientWidth`, `getBoundingClientRect`…) inside a frame: `intro.mjs`
+    keeps the window size from a resize listener, and caches the camera framings per shape.
+    A read after a write forces the browser to lay the page out mid-frame.
+  - Anything fully invisible is hidden (`display`/`visibility`), not left at opacity 0:
+    the unused shadow images, and the table once the camera is inside the last page.
   - The first frame is painted before the clock starts, and `intro.mjs` drops to an even
     60 fps if a screen keeps missing frames.
+- **On a real phone**, open the site with `?intro&stats`: after the intro it shows that device's
+  frame rate, frame count and slow frames.
 - **Measure in real Chrome**, not headless (its frame clock is simulated): with `npm run serve`
   running, `npm run frames` opens a visible Chrome window, plays the intro and lists every late
   frame. Today it reports 0–3 late frames out of about 600 at 120 Hz.

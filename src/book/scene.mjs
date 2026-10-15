@@ -257,7 +257,40 @@ function haloImage(plan, color, sigma, parent) {
   return group;
 }
 
-export const DEFS = `<pattern id="bk-weave" width="1.4" height="1.4" patternUnits="userSpaceOnUse"><path class="pc-weave" d="M0 1.4L1.4 0M-.35 .35L.35 -.35M1.05 1.75L1.75 1.05"/><path class="pc-weave-x" d="M0 0L1.4 1.4"/></pattern>`;
+// Where the floor plane lands on screen: the origin and one world unit along x and y.
+// The tabletop is painted in these coordinates so it lines up with the book.
+export const FLOOR = { o: S(0, 0, 0), ex: S(1, 0, 0), ey: S(0, 1, 0) };
+
+export const DEFS = "";
+
+// The cloth weave on the boards, drawn once into an image. As an SVG pattern its tiny tile
+// made Safari redraw thousands of tiles every frame of the camera move.
+function weaveImage(weave, light) {
+  const s = 8, canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(W * s);
+  canvas.height = Math.ceil(D * s);
+  const g = canvas.getContext("2d");
+  if (!g) return null;
+  g.scale(s, s);
+  g.lineCap = "butt";
+  g.strokeStyle = weave;
+  g.lineWidth = 0.17;
+  g.beginPath();
+  for (let c = 0; c <= W + D; c += 1.4) {
+    g.moveTo(c, 0);
+    g.lineTo(c - D, D);
+  }
+  g.stroke();
+  g.strokeStyle = light;
+  g.lineWidth = 0.13;
+  g.beginPath();
+  for (let c = -D; c <= W; c += 1.4) {
+    g.moveTo(c, 0);
+    g.lineTo(c + D, D);
+  }
+  g.stroke();
+  return canvas.toDataURL("image/png");
+}
 
 // Builds the book inside `layer` (an SVG <g>) and returns update(state) for each frame.
 export function createBook(read, layer) {
@@ -269,8 +302,11 @@ export function createBook(read, layer) {
   // ---- halos and the parts that never move: back board, text block, page edges, ribbon
   const haloColor = (read("--anatomy-halo") || "#5e594f").trim();
   const haloStrength = parseFloat(read("--anatomy-halo-opacity")) || 0.22;
+  // A soft shadow under the whole book, and a tight contact shadow where it meets the table.
   const haloClosed = haloImage({ x: -6, y: 2, w: W + 4, d: D + 6, r: 6 }, haloColor, 4, layer);
   const haloOpen = haloImage({ x: -W - G + 2, y: 2, w: 2 * W + G - 4, d: D + 6, r: 6 }, haloColor, 4, layer);
+  const contactClosed = haloImage({ x: -4, y: 0.5, w: W + 4, d: D + 0.5, r: 2 }, haloColor, 1.2, layer);
+  const contactOpen = haloImage({ x: -W - G, y: 0.5, w: 2 * W + G, d: D + 0.5, r: 2 }, haloColor, 1.2, layer);
   const back = solidSvg(slabOf({ x: 0, y: 0, w: W, d: D, r: 0.8 }, 0, B, P, 2, 0.6), { tone: "hi", className: "bk-cloth" });
   const block = solidSvg(slabOf({ x: 0, y: Y0, w: WP, d: Y1 - Y0, r: 0 }, B, ZR - B, P, 1), { tone: "mid", className: "bk-block" });
   let edges = "";
@@ -322,30 +358,41 @@ export function createBook(read, layer) {
         if (last && last[1] === i) last[1] = i + 1;
         else runs.push([i, i + 1]);
       });
-      let shape = "", lines = "", tops = "";
+      let lines = "", tops = "";
       const across = (from, to, y, off = 0) => dOf(pts.slice(from, to + 1).map(([x, z]) => S(x + sp.n[0] * off, y, z + sp.n[1] * off)));
       for (const [from, to] of runs) {
-        const head = pts.slice(from, to + 1).map(([x, z]) => S(x, 0, z));
-        const tail = pts.slice(from, to + 1).map(([x, z]) => S(x, D, z));
-        shape += dOf([...head, ...[...tail].reverse()], true);
         for (const y of [0.18, 0.36, 0.54, 0.72, 0.88].map((f) => f * D)) {
           lines += across(from, to, y - 1.4) + across(from, to, y + 1.4);
           tops += across(from, to, y, 0.45);
         }
         lines += across(from, to, D - 2.6);
       }
-      set(fill, "d", shape);
-      set(outline, "d", shape);
+      // The spine is a solid strip of cloth: wherever its outside turns away (as it rolls
+      // under the opening book) its inside shows instead, so it never goes see-through.
+      // Every segment is painted, far to near, so the strip overlaps itself correctly.
+      const strip = pts
+        .slice(0, -1)
+        .map((a, i) => {
+          const b = pts[i + 1];
+          const out = n3(unit(ccw(sub(b, a))));
+          const n = dot(out, V) > 0 ? out : out.map((c) => -c);
+          return {
+            d: dOf([S(a[0], 0, a[1]), S(b[0], 0, b[1]), S(b[0], D, b[1]), S(a[0], D, a[1])], true),
+            color: toneOf(n, C.cloth, C.clothShade),
+            depth: depthOf([(a[0] + b[0]) / 2, D / 2, (a[1] + b[1]) / 2], P),
+          };
+        })
+        .sort((x, y) => x.depth - y.depth);
+      const head = pts.map(([x, z]) => S(x, 0, z)), tail = pts.map(([x, z]) => S(x, D, z));
+      set(fill, "d", "");
+      set(outline, "d", dOf(head) + dOf(tail) + dOf([head[0], tail[0]]) + dOf([head[head.length - 1], tail[tail.length - 1]]));
       set(bands, "d", lines);
       set(crowns, "d", tops);
-      segs.forEach((node, i) => {
-        const n = on[i];
-        if (!n) return set(node, "d", "");
-        const [a, b] = [pts[i], pts[i + 1]];
-        const color = toneOf(n, C.cloth, C.clothShade);
-        set(node, "d", dOf([S(a[0], 0, a[1]), S(b[0], 0, b[1]), S(b[0], D, b[1]), S(a[0], D, a[1])], true));
-        set(node, "fill", color);
-        set(node, "stroke", color);
+      segs.forEach((node, k) => {
+        const q = strip[k];
+        set(node, "d", q.d);
+        set(node, "fill", q.color);
+        set(node, "stroke", q.color);
       });
       const crownOn = Boolean(on[9]);
       show(title, crownOn);
@@ -358,14 +405,22 @@ export function createBook(read, layer) {
   })();
 
   // ---- the front board
+  const weave = weaveImage((read("--cloth-weave") || "#b3ab9a").trim(), (read("--cloth-light") || "#e2dccf").trim());
+  const clothOn = (group) => {
+    const old = group.querySelector(".pc-cloth");
+    if (!old || !weave) return;
+    old.replaceWith(el("image", { href: weave, x: 0, y: 0, width: W, height: D, preserveAspectRatio: "none", opacity: "0.6" }));
+  };
   const cover = (() => {
     const g = el("g", { class: "bk-cover" }, layer);
     const fill = el("path", { class: "iso-fill" }, g);
     const faces = [[0, 1, "outer"], [1, 2, "edge"], [2, 3, "inner"], [3, 0, "edge"]].map(([i, j, kind]) => ({ i, j, kind, node: el("path", {}, g) }));
     const outside = el("g", {}, g);
     outside.innerHTML = localSvg(OUTSIDE);
+    clothOn(outside);
     const inside = el("g", {}, g);
     inside.innerHTML = localSvg(INSIDE);
+    clothOn(inside);
     const tail = el("path", { fill: toneOf([0, 1, 0], C.cloth, C.clothShade) }, g);
     const creases = el("path", { class: "iso-line", "data-tone": "lo" }, g);
     const outline = el("path", { class: "iso-line", "data-tone": "hi" }, g);
@@ -508,8 +563,16 @@ export function createBook(read, layer) {
       const u = clamp((x - a0) / (a1 - a0), 0, 1);
       return u * u * (3 - 2 * u);
     };
-    set(haloClosed, "opacity", r2(haloStrength * (1 - smooth(0, 0.45, open))));
-    set(haloOpen, "opacity", r2(haloStrength * smooth(0.72, 1, open)));
+    const closedShare = 1 - smooth(0, 0.45, open), openShare = smooth(0.72, 1, open);
+    // A shadow at zero opacity is hidden outright, so no browser spends time drawing it.
+    const shade = (node, share, strength) => {
+      set(node, "display", share > 0.004 ? null : "none");
+      set(node, "opacity", r2(strength * share));
+    };
+    shade(haloClosed, closedShare, haloStrength);
+    shade(haloOpen, openShare, haloStrength);
+    shade(contactClosed, closedShare, haloStrength * 1.3);
+    shade(contactOpen, openShare, haloStrength * 1.3);
     spine.update(sp);
     cover.update(a);
 
@@ -534,7 +597,7 @@ export function createBook(read, layer) {
       leaf.update(p >= 1 ? 1 : p, state.curls[i], sp.anchor);
     });
 
-    const next = [haloClosed, haloOpen, still];
+    const next = [haloClosed, haloOpen, contactClosed, contactOpen, still];
     if (top >= 0) next.push(...(a <= PI / 2 ? [nodes[top].g, spine.g] : [spine.g, nodes[top].g]));
     else next.push(spine.g);
     next.push(cover.g, ...landed.map((i) => nodes[i].g), ...flying.map((i) => nodes[i].g));

@@ -86,7 +86,12 @@ function insidePage(page, aspect) {
   return { cx, cy, w: lo * 2 };
 }
 
-function cameraAt(t, boxes, aspect) {
+// The camera's key framings depend only on the window's shape, so they are worked out
+// once per shape rather than every frame.
+const framings = new Map();
+function framingOf(boxes, aspect) {
+  const key = aspect.toFixed(4);
+  if (framings.has(key)) return framings.get(key);
   // On a tall phone screen the spread is too wide to read whole, so the camera
   // frames the right-hand page and lets the left one run off the edge.
   const tall = aspect < 0.85;
@@ -96,6 +101,13 @@ function cameraAt(t, boxes, aspect) {
   open.cy -= (open.w / aspect) * 0.05; // leave headroom for a leaf standing upright
   const page = insidePage(boxes.page, aspect);
   const hold = { cx: open.cx + (page.cx - open.cx) * 0.22, cy: open.cy + (page.cy - open.cy) * 0.22, w: open.w * 0.86 };
+  const framing = { closed, open, page, hold };
+  framings.set(key, framing);
+  return framing;
+}
+
+function cameraAt(t, boxes, aspect) {
+  const { closed, open, page, hold } = framingOf(boxes, aspect);
   if (t < TIME.open[0]) return closed;
   if (t < TIME.open[1]) return mixView(closed, open, ease(span(t, TIME.open)));
   if (t < TIME.push[0]) return mixView(open, hold, ease(span(t, [TIME.open[1], TIME.push[0]])));
@@ -109,6 +121,29 @@ function cameraAt(t, boxes, aspect) {
 }
 
 // ---------------------------------------------------------------- playing it
+
+// ?stats: after the intro, show how smoothly this device played it. The only way to know
+// on a real phone; normal visits never run this.
+function frameMeter() {
+  const gaps = [];
+  let last = 0, on = true;
+  const loop = (t) => {
+    if (last) gaps.push(t - last);
+    last = t;
+    if (on) requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+  return () => {
+    on = false;
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const typical = sorted[sorted.length >> 1] || 16.7;
+    const slow = gaps.filter((g) => g > typical * 1.5).length;
+    const box = document.createElement("p");
+    box.className = "intro-stats";
+    box.textContent = `Intro on this device: ${Math.round(1000 / typical)} fps · ${gaps.length} frames · ${slow} slow · worst ${Math.round(sorted[sorted.length - 1] || 0)} ms`;
+    document.body.append(box);
+  };
+}
 
 let playing = false;
 
@@ -159,18 +194,77 @@ async function run() {
 
   const svg = root.querySelector("svg");
   svg.classList.remove("is-in");
-  const { createBook, DEFS } = await import("./book/scene.mjs");
+  const [{ createBook, DEFS, FLOOR }, { paintTable }] = await Promise.all([import("./book/scene.mjs"), import("./book/table.mjs")]);
   svg.innerHTML = `<defs>${DEFS}</defs><g class="bk-dyn"></g>`;
   const css = getComputedStyle(root);
   await fontsReady();
   const book = createBook((name) => css.getPropertyValue(name), svg.lastElementChild);
   const plan = schedule(book.leafCount);
 
+  // The tabletop: painted once over everything the camera sees before it dives into
+  // the page, at the sharpest scale it is seen at, then only moved and scaled.
+  const table = root.querySelector(".table");
+  // The window's size, read once and on resize: reading it inside a frame, after the
+  // drawing has changed, would force the browser to lay the page out mid-frame.
+  const size = { w: root.clientWidth, h: Math.max(1, root.clientHeight) };
+  const onResize = () => {
+    size.w = root.clientWidth;
+    size.h = Math.max(1, root.clientHeight);
+  };
+  addEventListener("resize", onResize);
+  const aspect0 = Math.max(0.3, size.w / size.h);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const seen = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, sharp: 0 };
+  for (let t = 0; t <= TIME.push[0] + 300; t += 40) {
+    const v = cameraAt(t, book.boxes, aspect0), h = v.w / aspect0;
+    seen.x0 = Math.min(seen.x0, v.cx - v.w / 2);
+    seen.x1 = Math.max(seen.x1, v.cx + v.w / 2);
+    seen.y0 = Math.min(seen.y0, v.cy - h / 2);
+    seen.y1 = Math.max(seen.y1, v.cy + h / 2);
+    seen.sharp = Math.max(seen.sharp, (size.w * dpr) / v.w);
+  }
+  const pad = (seen.x1 - seen.x0) * 0.06;
+  const region = { x: seen.x0 - pad, y: seen.y0 - pad, w: seen.x1 - seen.x0 + pad * 2, h: seen.y1 - seen.y0 + pad * 2 };
+  // Stay inside what every browser allows for one canvas (about 16.7 million pixels).
+  const scale = Math.min(seen.sharp, 4096 / Math.max(region.w, region.h), Math.sqrt(16e6 / (region.w * region.h)));
+  const book0 = book.boxes.closed;
+  performance.mark("table-start");
+  const painted = table && paintTable(table, {
+    floor: FLOOR,
+    region,
+    scale,
+    colors: {
+      wood: css.getPropertyValue("--wood"),
+      grain: css.getPropertyValue("--wood-grain"),
+      light: css.getPropertyValue("--wood-light"),
+      shade: css.getPropertyValue("--wood-shade"),
+      focus: [((book0.x0 + book0.x1) / 2 - region.x) / region.w, ((book0.y0 + book0.y1) / 2 - region.y) / region.h],
+    },
+  });
+  performance.measure("table-paint", "table-start");
+  const unit = scale / dpr; // CSS px per user unit, as painted
+  if (painted) {
+    table.style.width = `${(region.w * unit).toFixed(1)}px`;
+    table.style.height = `${(region.h * unit).toFixed(1)}px`;
+    table.classList.add("is-ready");
+  }
+
   const draw = (t) => {
-    const aspect = Math.max(0.3, root.clientWidth / Math.max(1, root.clientHeight));
+    const aspect = Math.max(0.3, size.w / size.h);
     const view = cameraAt(t, book.boxes, aspect);
     const h = view.w / aspect;
-    svg.setAttribute("viewBox", `${(view.cx - view.w / 2).toFixed(3)} ${(view.cy - h / 2).toFixed(3)} ${view.w.toFixed(3)} ${h.toFixed(3)}`);
+    const vx = view.cx - view.w / 2, vy = view.cy - h / 2;
+    svg.setAttribute("viewBox", `${vx.toFixed(3)} ${vy.toFixed(3)} ${view.w.toFixed(3)} ${h.toFixed(3)}`);
+    if (painted) {
+      // Once the camera is inside the last page, no wood is visible: stop compositing it.
+      const { page } = framingOf(book.boxes, aspect);
+      const covered = t > TIME.push[0] && view.w <= page.w * 0.96 && Math.abs(view.cx - page.cx) < page.w * 0.02 && Math.abs(view.cy - page.cy) < (page.w * 0.02) / aspect;
+      table.style.visibility = covered ? "hidden" : "";
+      if (!covered) {
+        const k = size.w / view.w;
+        table.style.transform = `translate(${((region.x - vx) * k).toFixed(2)}px, ${((region.y - vy) * k).toFixed(2)}px) scale(${(k / unit).toFixed(5)})`;
+      }
+    }
     book.update(stateAt(t, plan));
   };
 
@@ -193,11 +287,13 @@ async function run() {
   const stop = () => {
     cancelAnimationFrame(raf);
     removeEventListener("keydown", onKey);
+    removeEventListener("resize", onResize);
   };
   const leave = (fast) => {
     if (left) return;
     left = true;
     performance.mark("intro-leave");
+    meter?.();
     root.classList.toggle("is-fast", Boolean(fast));
     root.classList.add("is-leaving");
     html.classList.remove("intro-playing");
@@ -209,6 +305,11 @@ async function run() {
       stop();
       root.hidden = true;
       playing = false;
+      const table = root.querySelector(".table");
+      if (table) {
+        table.width = table.height = 0; // free the canvas memory
+        table.classList.remove("is-ready");
+      }
     }, fast ? 320 : still.matches ? 720 : 480);
   };
   const onKey = (event) => {
@@ -219,6 +320,8 @@ async function run() {
   };
   addEventListener("keydown", onKey);
   root.querySelector(".intro-skip").onclick = () => leave(true);
+
+  const meter = params.has("stats") ? frameMeter() : null;
 
   if (still.matches) {
     performance.mark("intro-first-frame");

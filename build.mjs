@@ -73,7 +73,7 @@ const contact = `<section class="section contact" id="contact" aria-labelledby="
 </section>`;
 
 // The book's modules. Only a visit that will play the intro fetches them.
-const BOOK_MODULES = ["book/scene.mjs", "book/kit/iso-kit.mjs", "book/dims.mjs", "book/pages.mjs", "content.mjs"];
+const BOOK_MODULES = ["book/scene.mjs", "book/table.mjs", "book/kit/iso-kit.mjs", "book/dims.mjs", "book/pages.mjs", "content.mjs"];
 
 // Runs before first paint. If the intro is going to play: cover the page so the site
 // doesn't flash first, start fetching the book's modules and fonts in parallel, and if
@@ -117,6 +117,7 @@ ${hasShareImage ? `<meta property="og:image" content="${esc(PERSON.site)}/assets
 </head>
 <body>
 <div class="intro iso" id="intro" data-theme="light" hidden>
+  <canvas class="table" aria-hidden="true"></canvas>
   <svg class="iso-svg book" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A cloth-bound book titled ${esc(PERSON.name)} opens on its hinge; its leaves turn to the contents and riffle past until the last blank page fills the screen and becomes this page." preserveAspectRatio="xMidYMid slice"></svg>
   <button class="intro-skip" type="button">Skip intro</button>
 </div>
