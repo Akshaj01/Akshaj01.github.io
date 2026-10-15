@@ -87,6 +87,12 @@ const css = ["src/book/kit/iso.css", "src/site.css"].map((f) => readFileSync(joi
 const favicon = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M19.5 27v4.5l1.75-1.4 1.75 1.4V27" fill="#46648c"/><rect x="6.5" y="3.5" width="19" height="24" fill="#cbc4b4" stroke="#3b3935"/><rect x="6.5" y="3.5" width="4" height="24" fill="#958d7d" stroke="#3b3935"/><path d="M14 10h8M14 13h6" stroke="#8d897f"/></svg>`)}`;
 const hasShareImage = existsSync(join(HERE, "src/og.jpg"));
 
+// Dark mode: a choice remembered on this device, applied before first paint so a
+// returning dark-mode visitor never sees a flash of light.
+const PAPER = "#f6f4ef", NIGHT = "#161514";
+const themeInit = `(function(){try{if(localStorage.getItem("theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");var m=document.querySelector('meta[name="theme-color"]');if(m)m.content="${NIGHT}"}}catch(e){}})();`;
+const themeToggle = `(function(){var b=document.querySelector("[data-theme-toggle]");if(!b)return;var d=document.documentElement,m=document.querySelector('meta[name="theme-color"]');function apply(dark){if(dark)d.setAttribute("data-theme","dark");else d.removeAttribute("data-theme");b.setAttribute("aria-pressed",dark?"true":"false");b.setAttribute("aria-label",dark?"Switch to light mode":"Switch to dark mode");b.title=dark?"Light mode":"Dark mode";if(m)m.content=dark?"${NIGHT}":"${PAPER}"}apply(d.getAttribute("data-theme")==="dark");b.addEventListener("click",function(){var dark=d.getAttribute("data-theme")!=="dark";apply(dark);try{localStorage.setItem("theme",dark?"dark":"light")}catch(e){}})})();`;
+
 const description = `${PERSON.name}, ${PERSON.role} in ${PERSON.location}. ${PERSON.tagline}`;
 
 const page = `<!doctype html>
@@ -113,7 +119,7 @@ ${hasShareImage ? `<meta property="og:image" content="${esc(PERSON.site)}/assets
 <link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>${css}</style>
 <link rel="modulepreload" href="assets/intro.mjs">
-<script>${pending}</script>
+<script>${themeInit}${pending}</script>
 </head>
 <body>
 <div class="intro iso" id="intro" data-theme="light" hidden>
@@ -121,6 +127,10 @@ ${hasShareImage ? `<meta property="og:image" content="${esc(PERSON.site)}/assets
   <svg class="iso-svg book" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A cloth-bound book titled ${esc(PERSON.name)} opens on its hinge; its leaves turn to the contents and riffle past until the last blank page fills the screen and becomes this page." preserveAspectRatio="xMidYMid slice"></svg>
   <button class="intro-skip" type="button">Skip intro</button>
 </div>
+<button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to dark mode" title="Dark mode">
+  <svg class="icon-moon" viewBox="0 0 20 20" aria-hidden="true"><path d="M15.6 12.4A6.6 6.6 0 0 1 7.6 4.4a6.6 6.6 0 1 0 8 8Z"/></svg>
+  <svg class="icon-sun" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.3"/><path d="M10 2.2v1.9M10 15.9v1.9M2.2 10h1.9M15.9 10h1.9M4.5 4.5l1.3 1.3M14.2 14.2l1.3 1.3M4.5 15.5l1.3-1.3M14.2 5.8l1.3-1.3"/></svg>
+</button>
 <div class="site">
 <header class="masthead">
   <p class="kicker">${esc(PERSON.location)} · ${esc(PERSON.role)}</p>
@@ -146,6 +156,7 @@ ${contact}
   <span><button type="button" data-replay>Replay the opening</button> · Book drawn with <a href="https://github.com/wheresryan22/anatomy">Anatomy</a></span>
 </footer>
 </div>
+<script>${themeToggle}</script>
 <script type="module" src="assets/intro.mjs"></script>
 </body>
 </html>

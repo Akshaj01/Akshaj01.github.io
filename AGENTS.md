@@ -36,6 +36,10 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
   starts and only moved and scaled by the camera (a CSS transform, so it costs nothing per frame).
   Never redraw it per frame.
   The last page of the book is drawn exactly in `--paper`; never change one without the other.
+- **Dark mode.** The square button at the top right toggles `data-theme="dark"` on `<html>`;
+  the choice is kept in `localStorage` (`theme`) and applied by an inline head script before
+  first paint. Light is the default. Dark overrides the site's tokens at the top of `site.css`
+  and `.intro` re-declares the light ones, so the book always stays on paper.
 - **Radius 0.** No rounded corners anywhere.
 - **No shadows or glows.** Separation comes from 1px rules (`--rule`, `--rule-strong`).
   The one exception is the soft halo under the book in the intro, which is part of the object.

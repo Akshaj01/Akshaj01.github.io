@@ -58,6 +58,44 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 :focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 ::selection { background: #46648c2e; }
 
+/* ---------------------------------------------------------------- dark mode
+   Switched by the button at the top right and remembered per device. The site goes
+   dark; the intro keeps its paper, since its last page is what hands over. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #161514;
+  --ink: #ebe7df;
+  --ink-2: #b9b4aa;
+  --ink-3: #8a857c;
+  --rule: #2b2926;
+  --rule-strong: #4a4640;
+  --accent: #93acd0;
+  --accent-deep: #6f8db8;
+}
+html[data-theme="dark"] ::selection { background: #93acd040; }
+html[data-theme="dark"] .intro {
+  --paper: #f6f4ef;
+  --ink: #1d1d1f;
+  --ink-2: #4f4f55;
+  --ink-3: #87878c;
+  --rule: #d9d5cc;
+  --rule-strong: #b9b4aa;
+  --accent: #46648c;
+  --accent-deep: #2f4868;
+}
+
+.theme-toggle {
+  position: absolute; top: 20px; right: 20px; z-index: 10;
+  width: 38px; height: 38px; display: grid; place-items: center; padding: 0;
+  background: var(--paper); color: var(--ink-2); border: 1px solid var(--rule-strong); border-radius: 0;
+  cursor: pointer; transition: opacity 700ms ease, color 150ms ease, border-color 150ms ease;
+}
+.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle .icon-sun, html[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+html.intro-pending .theme-toggle, html.intro-playing .theme-toggle { opacity: 0; pointer-events: none; }
+
 .site { width: min(760px, 100% - 32px); margin: 0 auto; padding: 88px 0 56px; }
 
 /* ---------------------------------------------------------------- masthead */
