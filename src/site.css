@@ -26,11 +26,14 @@
   --page-shade: #d6d1c5;
   --page-rule: #d2cdc2;
   --pencil: #8e8b84;
-  --cloth: #cbc4b4;
-  --cloth-shade: #958d7d;
-  --cloth-ink: #a59d8c;
-  --cloth-light: #e2dccf;
-  --cloth-weave: #b3ab9a;
+  /* The book's case: navy book cloth, stamped in antique gold foil. */
+  --cloth: #22324a;
+  --cloth-shade: #0f1828;
+  --cloth-light: #3b5070;
+  --cloth-weave: #172338;
+  --cloth-edge: #0a101c;
+  --foil: #c6aa6c;
+  --foil-edge: #101a2a;
   --marble-a: #e8e3d8;
   --marble-b: #d8d1c2;
   --marble-c: #efebe3;
@@ -190,7 +193,9 @@ html.intro-pending .site, html.intro-playing .site { opacity: 0; transform: tran
   --anatomy-halo: #4a3824; --anatomy-halo-opacity: 0.38;
 }
 .bk-block { --anatomy-top: var(--paper); --anatomy-shade-0: #e2ddd2; --anatomy-shade-1: #e8e4da; --anatomy-shade-2: #edeae2; --anatomy-shade-3: #f1eee8; }
-.bk-cloth { --anatomy-paper: var(--cloth); --anatomy-top: var(--cloth); --anatomy-shade-0: #9d9585; --anatomy-shade-1: #aaa292; --anatomy-shade-2: #b6af9f; --anatomy-shade-3: #c1baaa; }
+.bk-cloth { --anatomy-paper: var(--cloth); --anatomy-top: var(--cloth); --anatomy-shade-0: #0e1625; --anatomy-shade-1: #131e31; --anatomy-shade-2: #18253c; --anatomy-shade-3: #1d2b44; }
+/* Edges and creases on the navy case: a darker navy, not the grey used on paper. */
+.bk-cloth, .bk-cover, .bk-spine { --anatomy-hi: var(--cloth-edge); --anatomy-lo: var(--cloth-edge); --anatomy-faint: var(--cloth-light); }
 
 /* What is printed on the pages scales with the book, unlike the kit's hairlines. */
 .iso-svg [class*="pc-"], .iso-svg [class*="bk-"] { vector-effect: none; }
@@ -219,16 +224,16 @@ html.intro-pending .site, html.intro-playing .site { opacity: 0; transform: tran
 .pc-groove { fill: none; stroke: var(--cloth-shade); stroke-width: 0.45; }
 .pc-groove-hi { fill: none; stroke: var(--cloth-light); stroke-width: 0.45; }
 .pc-bevel { fill: none; stroke: var(--cloth-light); stroke-width: 0.5; }
-.pc-stamp { fill: var(--cloth-ink); }
-.pc-stamp-hi { fill: var(--cloth-light); }
-.pc-stamp-line { fill: none; stroke: var(--cloth-ink); stroke-width: 0.45; }
+.pc-stamp { fill: var(--foil); }
+.pc-stamp-hi { fill: var(--foil-edge); } /* the debossed edge the foil sits in */
+.pc-stamp-line { fill: none; stroke: var(--foil); stroke-width: 0.45; }
 .pc-under { fill: var(--paper); }
 .pc-under-edge { fill: none; stroke: #c4bfb4; stroke-width: 0.3; }
 .pc-flap { fill: #e4dfd4; }
 .pc-flap-edge { fill: none; stroke: #a7a297; stroke-width: 0.35; stroke-linejoin: round; }
-.bk-cavity { fill: #6a6458; }
-.bk-headband { fill: none; stroke: #ece6d9; stroke-width: 2; stroke-linecap: round; }
-.bk-headband-bead { fill: none; stroke: #6a6458; stroke-width: 2; stroke-dasharray: 0.8 0.8; }
+.bk-cavity { fill: #0c1422; }
+.bk-headband { fill: none; stroke: #e9e1cc; stroke-width: 2; stroke-linecap: round; }
+.bk-headband-bead { fill: none; stroke: #9a8458; stroke-width: 2; stroke-dasharray: 0.8 0.8; }
 .bk-crown { fill: none; stroke: var(--cloth-light); stroke-width: 0.6px; vector-effect: non-scaling-stroke; }
 
 /* Reduced motion: the gentle version. Only opacity changes; nothing slides, zooms or turns. */

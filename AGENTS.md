@@ -44,7 +44,10 @@ only opacity changing (`GENTLE_HOLD` in `intro.mjs`, the reduced-motion block in
 - **No shadows or glows.** Separation comes from 1px rules (`--rule`, `--rule-strong`).
   The one exception is the soft halo under the book in the intro, which is part of the object.
 - **One accent.** Muted blue `--accent` (#46648c) only for the lit part: the silk ribbon in
-  the book, and hover states on links. No other colour.
+  the book, and hover states on links. No other colour in the site's own UI.
+- **The book's case is navy cloth stamped in antique gold foil** (`--cloth*`, `--foil*` in
+  `site.css`): colours of the object, like the oak table, not of the interface. The pages,
+  endpapers and everything printed on them stay on paper.
 - **Type.** Outfit (`--display`) for the name, headings and anything stamped or set in the
   book; Source Serif 4 (`--serif`) for body text; the system monospace (`--mono`) for labels,
   dates and numbers.

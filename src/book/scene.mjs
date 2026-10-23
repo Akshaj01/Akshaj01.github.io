@@ -442,7 +442,7 @@ export function createBook(read, layer) {
         }
         const quad = [S(c[face.i][0], 0, c[face.i][1]), S(c[face.j][0], 0, c[face.j][1]), S(c[face.j][0], D, c[face.j][1]), S(c[face.i][0], D, c[face.i][1])];
         set(face.node, "d", dOf(quad, true));
-        set(face.node, "fill", face.kind === "inner" ? rgb(C.paper) : toneOf(n, C.cloth, C.clothShade));
+        set(face.node, "fill", toneOf(n, C.cloth, C.clothShade));
         lines += dOf([quad[0], quad[1]]) + dOf([quad[3], quad[2]]);
         if (face.kind === "outer") {
           outerOn = true;
