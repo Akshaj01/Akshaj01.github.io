@@ -50,14 +50,15 @@ export const EXPERIENCE = [
 export const PROJECTS = [
   {
     name: "SEC GraphRAG",
-    date: "Aug 2026",
-    stack: ["Python", "FastAPI", "Neo4j", "PostgreSQL/pgvector", "Docker"],
+    date: "Aug 2026 – Present",
+    stack: ["Python", "FastAPI", "Neo4j", "PostgreSQL/pgvector", "Claude", "Instructor", "Docker"],
     link: "https://github.com/Akshaj01/sec-graph-rag",
     linkLabel: "Akshaj01/sec-graph-rag",
     points: [
-      "Hybrid knowledge-graph + vector RAG over 10-K filings from 10 companies: a closed ontology (6 entity and 8 relationship types) extracted with structured LLM outputs into idempotent Neo4j writes, cross-linked to an HNSW index by chunk ID.",
-      "Graph lookups go through allowlisted, parameterized Cypher templates, so the model never writes database queries; any answer citing evidence outside the retrieved set is regenerated.",
-      "A hop-stratified 24-question benchmark: hybrid retrieval raised keyword recall from 0.71 to 0.85 overall and from 0.69 to 0.94 on single-hop relationship questions, with correct refusals on every out-of-scope question.",
+      "Hybrid knowledge-graph + vector RAG over the 10-K filings of 10 companies. Claude with Instructor extracts a closed ontology (6 entity and 8 relationship types) into idempotent Neo4j writes, and the same chunks go into a pgvector HNSW index under a shared chunk ID.",
+      "A Haiku router sends each question to the graph, the vectors or both. Graph lookups run only through allowlisted, parameterized Cypher templates, and an answer that cites a chunk outside its own retrieval is rejected and regenerated.",
+      "A 44-question, hop-stratified benchmark graded by an LLM judge (weighted kappa 0.84 on held-out labels): hybrid scores 0.92 to vector-only’s 0.89, but a paired bootstrap puts the gap’s 95% interval across zero, and vector-only retrieves better (recall@5 0.82 vs 0.67).",
+      "Both systems refuse all 12 out-of-scope questions, and a CI gate fails any commit that drops the saved hybrid recall@10 by more than two points.",
     ],
   },
   {
