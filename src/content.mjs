@@ -57,7 +57,7 @@ export const PROJECTS = [
     points: [
       "Hybrid knowledge-graph + vector RAG over the 10-K filings of 10 companies. Claude with Instructor extracts a closed ontology (6 entity and 8 relationship types) into idempotent Neo4j writes, and the same chunks go into a pgvector HNSW index under a shared chunk ID.",
       "A Haiku router sends each question to the graph, the vectors or both. Graph lookups run only through allowlisted, parameterized Cypher templates, and an answer that cites a chunk outside its own retrieval is rejected and regenerated.",
-      "A 44-question, hop-stratified benchmark graded by an LLM judge (weighted kappa 0.84 on held-out labels): hybrid scores 0.92 to vector-only’s 0.89, but a paired bootstrap puts the gap’s 95% interval across zero, and vector-only retrieves better (recall@5 0.82 vs 0.67).",
+      "A 44-question, hop-stratified benchmark graded by an LLM judge (held-out κ 0.84): one temperature-0 run scores hybrid 0.90 vs vector-only 0.87 (paired gap +0.026), with hop-2 hybrid at 1.00. Retrieve-only, both hit recall@5 0.84 and MRR 0.70; vector still leads recall@10 (0.94 vs 0.91).",
       "Both systems refuse all 12 out-of-scope questions, and a CI gate fails any commit that drops the saved hybrid recall@10 by more than two points.",
     ],
   },
